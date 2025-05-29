@@ -72,9 +72,9 @@ resource "aws_route" "to_tgw" {
 
 # Route to Internet via IGW
 resource "aws_route" "to_internet" {
-  count = var.internet_gateway_id != null ? length(var.vpc_route_table_ids) : 0
+  for_each = var.internet_gateway_id != null ? toset(var.vpc_route_table_ids) : []
 
-  route_table_id         = var.vpc_route_table_ids[count.index]
+  route_table_id         = each.value
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = var.internet_gateway_id
 
