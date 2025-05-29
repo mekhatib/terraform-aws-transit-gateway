@@ -78,7 +78,8 @@ locals {
 }
 
 resource "aws_route" "to_internet" {
-  for_each = var.internet_gateway_id != null ? local.vpc_route_table_map : {}
+  for_each = var.enable_internet_gateway_routes ? local.vpc_route_table_map : {}
+
 
   route_table_id         = each.value
   destination_cidr_block = "0.0.0.0/0"
