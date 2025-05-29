@@ -62,3 +62,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_internet_gateway_routes" {
+  type    = bool
+  default = false
+}
