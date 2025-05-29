@@ -71,14 +71,18 @@ resource "aws_route" "to_tgw" {
 }
 
 # Route to Internet via IGW
+locals {
+  vpc_route_table_map = {
+    for idx, rt_id in var.vpc_route_table_ids : idx => rt_id
+  }
+}
+
 resource "aws_route" "to_internet" {
-  for_each = var.internet_gateway_id != null ? toset(var.vpc_route_table_ids) : []
+  for_each = var.internet_gateway_id != null ? local.vpc_route_table_map : {}
 
   route_table_id         = each.value
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = var.internet_gateway_id
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }
+
+
