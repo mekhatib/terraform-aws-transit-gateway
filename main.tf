@@ -7,7 +7,6 @@ resource "aws_ec2_transit_gateway" "main" {
   default_route_table_association = "disable"
   default_route_table_propagation = "disable"
   multicast_support              = var.enable_multicast ? "enable" : "disable"
-
   tags = merge(
     var.tags,
     {
@@ -23,7 +22,6 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "main" {
   vpc_id                                          = var.vpc_id
   transit_gateway_default_route_table_association = false
   transit_gateway_default_route_table_propagation = false
-
   tags = merge(
     var.tags,
     {
@@ -35,7 +33,6 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "main" {
 # Transit Gateway Route Table
 resource "aws_ec2_transit_gateway_route_table" "main" {
   transit_gateway_id = aws_ec2_transit_gateway.main.id
-
   tags = merge(
     var.tags,
     {
@@ -53,37 +50,31 @@ resource "aws_ec2_transit_gateway_route_table_association" "main" {
 # Transit Gateway Routes
 resource "aws_ec2_transit_gateway_route" "routes" {
   for_each = { for idx, route in var.tgw_routes : idx => route }
-
   destination_cidr_block         = each.value.destination_cidr
   transit_gateway_attachment_id  = each.value.attachment_id == "vpc" ? aws_ec2_transit_gateway_vpc_attachment.main.id : each.value.attachment_id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
-# Update VPC Route Tables to route through TGW
+# Update VPC Route Tables to route through TGW - FIXED: Use for_each instead of count
 resource "aws_route" "to_tgw" {
-  count = length(var.vpc_route_table_ids)
-
-  route_table_id         = var.vpc_route_table_ids[count.index]
+  for_each = toset(var.vpc_route_table_ids)
+  
+  route_table_id         = each.value
   destination_cidr_block = "10.0.0.0/8"
   transit_gateway_id     = aws_ec2_transit_gateway.main.id
-
   depends_on = [aws_ec2_transit_gateway_vpc_attachment.main]
 }
 
 # Route to Internet via IGW
 locals {
   vpc_route_table_map = {
-    for idx, rt_id in var.vpc_route_table_ids : idx => rt_id
+    for idx, rt_id in var.vpc_route_table_ids : rt_id => rt_id
   }
 }
 
 resource "aws_route" "to_internet" {
   for_each = var.enable_internet_gateway_routes ? local.vpc_route_table_map : {}
-
-
   route_table_id         = each.value
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = var.internet_gateway_id
 }
-
-
