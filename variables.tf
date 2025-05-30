@@ -25,9 +25,27 @@ variable "subnet_ids" {
 }
 
 variable "vpc_route_table_ids" {
-  description = "VPC route table IDs to update"
+  description = "VPC route table IDs to update (LEGACY - use private_route_table_ids and public_route_table_id instead)"
   type        = list(string)
   default     = []
+}
+
+variable "private_route_table_ids" {
+  description = "List of private route table IDs"
+  type        = list(string)
+  default     = []
+}
+
+variable "public_route_table_id" {
+  description = "Public route table ID"
+  type        = string
+  default     = null
+}
+
+variable "create_vpc_routes" {
+  description = "Create routes in VPC route tables to Transit Gateway"
+  type        = bool
+  default     = true
 }
 
 variable "internet_gateway_id" {
@@ -64,24 +82,7 @@ variable "tags" {
 }
 
 variable "enable_internet_gateway_routes" {
-  type    = bool
-  default = false
-}
-
-variable "private_route_table_ids" {
-  description = "List of private route table IDs"
-  type        = list(string)
-  default     = []
-}
-
-variable "public_route_table_id" {
-  description = "Public route table ID"
-  type        = string
-  default     = null
-}
-
-variable "create_vpc_routes" {
-  description = "Create routes in VPC route tables to Transit Gateway"
+  description = "Enable routes to internet gateway in VPC route tables"
   type        = bool
-  default     = true
+  default     = false
 }
