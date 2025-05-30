@@ -25,7 +25,7 @@ variable "subnet_ids" {
 }
 
 variable "vpc_route_table_ids" {
-  description = "VPC route table IDs to update (LEGACY - use private_route_table_ids and public_route_table_id instead)"
+  description = "VPC route table IDs to update (DEPRECATED - kept for compatibility but not used)"
   type        = list(string)
   default     = []
 }
