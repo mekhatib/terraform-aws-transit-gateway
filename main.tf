@@ -55,10 +55,8 @@ resource "aws_ec2_transit_gateway_route" "routes" {
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
-# Update VPC Route Tables to route through TGW - FINAL FIX: No dynamic dependencies
-# Create routes only when explicitly enabled and route table IDs are provided as static values
+# Update VPC Route Tables to route through TGW - CLEAN: No dynamic dependencies
 resource "aws_route" "private_to_tgw" {
-  # Use length() only on variables passed directly to the module, not computed values
   count = var.create_vpc_routes && length(var.private_route_table_ids) > 0 ? length(var.private_route_table_ids) : 0
   
   route_table_id         = var.private_route_table_ids[count.index]
@@ -67,7 +65,6 @@ resource "aws_route" "private_to_tgw" {
   depends_on = [aws_ec2_transit_gateway_vpc_attachment.main]
 }
 
-# Only create public route if public_route_table_id is explicitly provided and not empty
 resource "aws_route" "public_to_tgw" {
   count = var.create_vpc_routes && var.public_route_table_id != null && var.public_route_table_id != "" ? 1 : 0
   
@@ -77,11 +74,9 @@ resource "aws_route" "public_to_tgw" {
   depends_on = [aws_ec2_transit_gateway_vpc_attachment.main]
 }
 
-# REMOVED: Legacy fallback to avoid count dependency issues
-
-# Route to Internet via IGW - FIXED: Only use new approach
+# Route to Internet via IGW - CLEAN: No local references
 resource "aws_route" "private_to_internet" {
-  count = var.enable_internet_gateway_routes ? local.private_rt_count : 0
+  count = var.enable_internet_gateway_routes && length(var.private_route_table_ids) > 0 ? length(var.private_route_table_ids) : 0
   
   route_table_id         = var.private_route_table_ids[count.index]
   destination_cidr_block = "0.0.0.0/0"
@@ -89,11 +84,9 @@ resource "aws_route" "private_to_internet" {
 }
 
 resource "aws_route" "public_to_internet" {
-  count = var.enable_internet_gateway_routes && local.has_public_rt ? 1 : 0
+  count = var.enable_internet_gateway_routes && var.public_route_table_id != null && var.public_route_table_id != "" ? 1 : 0
   
   route_table_id         = var.public_route_table_id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = var.internet_gateway_id
 }
-
-# REMOVED: Legacy internet routes to avoid count dependency issues
