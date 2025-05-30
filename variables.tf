@@ -67,3 +67,21 @@ variable "enable_internet_gateway_routes" {
   type    = bool
   default = false
 }
+
+variable "private_route_table_ids" {
+  description = "List of private route table IDs"
+  type        = list(string)
+  default     = []
+}
+
+variable "public_route_table_id" {
+  description = "Public route table ID"
+  type        = string
+  default     = null
+}
+
+variable "create_vpc_routes" {
+  description = "Create routes in VPC route tables to Transit Gateway"
+  type        = bool
+  default     = true
+}
