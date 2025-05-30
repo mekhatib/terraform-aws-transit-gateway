@@ -24,36 +24,6 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
-variable "vpc_route_table_ids" {
-  description = "VPC route table IDs to update (DEPRECATED - kept for compatibility but not used)"
-  type        = list(string)
-  default     = []
-}
-
-variable "private_route_table_ids" {
-  description = "List of private route table IDs"
-  type        = list(string)
-  default     = []
-}
-
-variable "public_route_table_id" {
-  description = "Public route table ID"
-  type        = string
-  default     = null
-}
-
-variable "create_vpc_routes" {
-  description = "Create routes in VPC route tables to Transit Gateway"
-  type        = bool
-  default     = true
-}
-
-variable "internet_gateway_id" {
-  description = "Internet Gateway ID for default route"
-  type        = string
-  default     = null
-}
-
 variable "enable_dns_support" {
   description = "Enable DNS support in Transit Gateway"
   type        = bool
@@ -81,8 +51,10 @@ variable "tags" {
   default     = {}
 }
 
-variable "enable_internet_gateway_routes" {
-  description = "Enable routes to internet gateway in VPC route tables"
-  type        = bool
-  default     = false
-}
+# REMOVED ALL ROUTE-RELATED VARIABLES:
+# - vpc_route_table_ids
+# - private_route_table_ids  
+# - public_route_table_id
+# - create_vpc_routes
+# - enable_internet_gateway_routes
+# - internet_gateway_id
