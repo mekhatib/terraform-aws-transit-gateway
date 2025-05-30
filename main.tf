@@ -55,38 +55,5 @@ resource "aws_ec2_transit_gateway_route" "routes" {
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
-# Update VPC Route Tables to route through TGW - CLEAN: No dynamic dependencies
-resource "aws_route" "private_to_tgw" {
-  count = var.create_vpc_routes && length(var.private_route_table_ids) > 0 ? length(var.private_route_table_ids) : 0
-  
-  route_table_id         = var.private_route_table_ids[count.index]
-  destination_cidr_block = "10.0.0.0/8"
-  transit_gateway_id     = aws_ec2_transit_gateway.main.id
-  depends_on = [aws_ec2_transit_gateway_vpc_attachment.main]
-}
-
-resource "aws_route" "public_to_tgw" {
-  count = var.create_vpc_routes && var.public_route_table_id != null && var.public_route_table_id != "" ? 1 : 0
-  
-  route_table_id         = var.public_route_table_id
-  destination_cidr_block = "10.0.0.0/8"
-  transit_gateway_id     = aws_ec2_transit_gateway.main.id
-  depends_on = [aws_ec2_transit_gateway_vpc_attachment.main]
-}
-
-# Route to Internet via IGW - CLEAN: No local references
-resource "aws_route" "private_to_internet" {
-  count = var.enable_internet_gateway_routes && length(var.private_route_table_ids) > 0 ? length(var.private_route_table_ids) : 0
-  
-  route_table_id         = var.private_route_table_ids[count.index]
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = var.internet_gateway_id
-}
-
-resource "aws_route" "public_to_internet" {
-  count = var.enable_internet_gateway_routes && var.public_route_table_id != null && var.public_route_table_id != "" ? 1 : 0
-  
-  route_table_id         = var.public_route_table_id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = var.internet_gateway_id
-}
+# REMOVED ALL VPC ROUTE CREATION - This is the source of the count dependency issues
+# VPC routes will be managed outside this module to avoid count dependency problems
