@@ -55,26 +55,38 @@ resource "aws_ec2_transit_gateway_route" "routes" {
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
-# Update VPC Route Tables to route through TGW - FIXED: Use for_each instead of count
-resource "aws_route" "to_tgw" {
-  for_each = toset(var.vpc_route_table_ids)
+# Update VPC Route Tables to route through TGW - FIXED: Use separate resources for known route tables
+resource "aws_route" "private_to_tgw" {
+  count = var.create_vpc_routes ? length(var.private_route_table_ids) : 0
   
-  route_table_id         = each.value
+  route_table_id         = var.private_route_table_ids[count.index]
   destination_cidr_block = "10.0.0.0/8"
   transit_gateway_id     = aws_ec2_transit_gateway.main.id
   depends_on = [aws_ec2_transit_gateway_vpc_attachment.main]
 }
 
-# Route to Internet via IGW
-locals {
-  vpc_route_table_map = {
-    for idx, rt_id in var.vpc_route_table_ids : rt_id => rt_id
-  }
+resource "aws_route" "public_to_tgw" {
+  count = var.create_vpc_routes && var.public_route_table_id != null ? 1 : 0
+  
+  route_table_id         = var.public_route_table_id
+  destination_cidr_block = "10.0.0.0/8"
+  transit_gateway_id     = aws_ec2_transit_gateway.main.id
+  depends_on = [aws_ec2_transit_gateway_vpc_attachment.main]
 }
 
-resource "aws_route" "to_internet" {
-  for_each = var.enable_internet_gateway_routes ? local.vpc_route_table_map : {}
-  route_table_id         = each.value
+# Route to Internet via IGW - FIXED: Use separate resources
+resource "aws_route" "private_to_internet" {
+  count = var.enable_internet_gateway_routes ? length(var.private_route_table_ids) : 0
+  
+  route_table_id         = var.private_route_table_ids[count.index]
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = var.internet_gateway_id
+}
+
+resource "aws_route" "public_to_internet" {
+  count = var.enable_internet_gateway_routes && var.public_route_table_id != null ? 1 : 0
+  
+  route_table_id         = var.public_route_table_id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = var.internet_gateway_id
 }
