@@ -55,26 +55,18 @@ resource "aws_ec2_transit_gateway_route" "routes" {
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
-# Update VPC Route Tables to route through TGW - FIXED: Support both old and new variable approaches
+# Update VPC Route Tables to route through TGW - FIXED: Only use new approach
 locals {
-  # Use new variables if provided, fallback to old vpc_route_table_ids for backward compatibility
-  use_separate_route_tables = length(var.private_route_table_ids) > 0 || var.public_route_table_id != null
-  
-  # If using new approach, combine them; otherwise use the old variable
-  effective_route_table_ids = local.use_separate_route_tables ? compact(concat(
-    var.private_route_table_ids,
-    var.public_route_table_id != null ? [var.public_route_table_id] : []
-  )) : var.vpc_route_table_ids
-  
+  # Always use the new separate route table approach
   # Count for private route tables
   private_rt_count = length(var.private_route_table_ids)
   # Whether we have a public route table
   has_public_rt = var.public_route_table_id != null
 }
 
-# Route creation using new approach (recommended)
+# Route creation using new approach only
 resource "aws_route" "private_to_tgw" {
-  count = var.create_vpc_routes && local.use_separate_route_tables ? local.private_rt_count : 0
+  count = var.create_vpc_routes ? local.private_rt_count : 0
   
   route_table_id         = var.private_route_table_ids[count.index]
   destination_cidr_block = "10.0.0.0/8"
@@ -83,7 +75,7 @@ resource "aws_route" "private_to_tgw" {
 }
 
 resource "aws_route" "public_to_tgw" {
-  count = var.create_vpc_routes && local.use_separate_route_tables && local.has_public_rt ? 1 : 0
+  count = var.create_vpc_routes && local.has_public_rt ? 1 : 0
   
   route_table_id         = var.public_route_table_id
   destination_cidr_block = "10.0.0.0/8"
@@ -91,19 +83,11 @@ resource "aws_route" "public_to_tgw" {
   depends_on = [aws_ec2_transit_gateway_vpc_attachment.main]
 }
 
-# Fallback to old approach if new variables not provided (backward compatibility)
-resource "aws_route" "legacy_to_tgw" {
-  count = var.create_vpc_routes && !local.use_separate_route_tables ? length(var.vpc_route_table_ids) : 0
-  
-  route_table_id         = var.vpc_route_table_ids[count.index]
-  destination_cidr_block = "10.0.0.0/8"
-  transit_gateway_id     = aws_ec2_transit_gateway.main.id
-  depends_on = [aws_ec2_transit_gateway_vpc_attachment.main]
-}
+# REMOVED: Legacy fallback to avoid count dependency issues
 
-# Route to Internet via IGW - FIXED: Support both approaches
+# Route to Internet via IGW - FIXED: Only use new approach
 resource "aws_route" "private_to_internet" {
-  count = var.enable_internet_gateway_routes && local.use_separate_route_tables ? local.private_rt_count : 0
+  count = var.enable_internet_gateway_routes ? local.private_rt_count : 0
   
   route_table_id         = var.private_route_table_ids[count.index]
   destination_cidr_block = "0.0.0.0/0"
@@ -111,18 +95,11 @@ resource "aws_route" "private_to_internet" {
 }
 
 resource "aws_route" "public_to_internet" {
-  count = var.enable_internet_gateway_routes && local.use_separate_route_tables && local.has_public_rt ? 1 : 0
+  count = var.enable_internet_gateway_routes && local.has_public_rt ? 1 : 0
   
   route_table_id         = var.public_route_table_id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = var.internet_gateway_id
 }
 
-# Legacy internet routes (fallback)
-resource "aws_route" "legacy_to_internet" {
-  count = var.enable_internet_gateway_routes && !local.use_separate_route_tables ? length(var.vpc_route_table_ids) : 0
-  
-  route_table_id         = var.vpc_route_table_ids[count.index]
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = var.internet_gateway_id
-}
+# REMOVED: Legacy internet routes to avoid count dependency issues
